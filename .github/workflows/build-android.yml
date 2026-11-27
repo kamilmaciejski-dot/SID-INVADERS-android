@@ -1,0 +1,36 @@
+name: Build Android APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Przygotuj projekt Androida
+        run: |
+          mkdir cap && cd cap
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          mkdir www && cp ../index.html www/
+          npx cap init "SID INVADERS" com.sidinvaders.game --web-dir www
+          npx cap add android
+          sed -i 's/<activity/<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
+          sed -i 's#<item name="android:background">@null</item>#<item name="android:background">@null</item><item name="android:windowFullscreen">true</item>#' android/app/src/main/res/values/styles.xml
+      - name: Zbuduj APK
+        working-directory: cap/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sid-invaders-android-apk
+          path: cap/android/app/build/outputs/apk/debug/app-debug.apk
+          
